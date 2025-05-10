@@ -36,11 +36,15 @@ class TestLambdaFunction(unittest.TestCase):
             })
         }
         
+        # Настраиваем мок, чтобы он возвращал None (как в реальной функции)
+        mock_process.return_value = None
+        
         # Вызываем функцию-обработчик
         response = lambda_handler(event, None)
         
-        # Проверяем, что функция process_telegram_update была вызвана
-        mock_process.assert_called_once()
+        # Проверяем, что функция process_telegram_update была вызвана с правильными аргументами
+        update_json = json.loads(event['body'])
+        mock_process.assert_called_once_with(update_json) 
         
         # Проверяем ответ
         self.assertEqual(response['statusCode'], 200)
