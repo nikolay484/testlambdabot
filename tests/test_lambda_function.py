@@ -7,12 +7,15 @@ import sys
 # Добавляем путь к исходному коду в PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.lambda_function import lambda_handler
-
 class TestLambdaFunction(unittest.TestCase):
     
+    @patch.dict(os.environ, {"TELEGRAM_TOKEN": "test_token"})
+    @patch('telegram.Bot')
     @patch('src.lambda_function.process_telegram_update')
-    def test_lambda_handler_valid_request(self, mock_process):
+    def test_lambda_handler_valid_request(self, mock_process, mock_bot):
+        # Импортируем lambda_handler здесь, чтобы патчи применились до импорта
+        from src.lambda_function import lambda_handler
+        
         # Создаем тестовый запрос
         event = {
             'body': json.dumps({
@@ -50,7 +53,12 @@ class TestLambdaFunction(unittest.TestCase):
         self.assertEqual(response['statusCode'], 200)
         self.assertEqual(json.loads(response['body']), 'OK')
     
-    def test_lambda_handler_invalid_request(self):
+    @patch.dict(os.environ, {"TELEGRAM_TOKEN": "test_token"})
+    @patch('telegram.Bot')
+    def test_lambda_handler_invalid_request(self, mock_bot):
+        # Импортируем lambda_handler здесь, чтобы патчи применились до импорта
+        from src.lambda_function import lambda_handler
+        
         # Создаем тестовый запрос без тела
         event = {}
         
