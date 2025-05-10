@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Telegram Bot on AWS Lambda
+
+Parameters:
+  TelegramToken:
+    Type: String
+    Description: Telegram Bot Token
+    NoEcho: true
+
+Resources:
+  TelegramBotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src.lambda_function.lambda_handler
+      Runtime: python3.9
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          TELEGRAM_TOKEN: !Ref TelegramToken
+      Policies:
+        - AWSLambdaBasicExecutionRole  # Allows Lambda to create logs in CloudWatch
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /webhook
+            Method: post
+
+Outputs:
+  TelegramBotApi:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/webhook"
+  TelegramBotFunction:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt TelegramBotFunction.Arn
