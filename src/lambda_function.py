@@ -16,7 +16,9 @@ def start(update, context):
     """Обработчик команды /start"""
     keyboard = [
         [telegram.InlineKeyboardButton("Опция 1", callback_data='option1'),
-         telegram.InlineKeyboardButton("Опция 2", callback_data='option2')]
+         telegram.InlineKeyboardButton("Опция 2", callback_data='option2'),
+         telegram.InlineKeyboardButton("Last check", callback_data='option3')
+         ]
     ]
     reply_markup = telegram.InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Привет! Я бот, работающий на AWS Lambda. Выберите опцию:', reply_markup=reply_markup)
@@ -39,6 +41,8 @@ def button_callback(update, context):
         query.edit_message_text(text="Вы выбрали опцию 1!")
     elif query.data == 'option2':
         query.edit_message_text(text="Вы выбрали опцию 2!")
+    elif query.data == 'option3':
+        query.edit_message_text(text="vse rabotaet kak nado ")    
     else:
         query.edit_message_text(text=f"Получен неизвестный callback: {query.data}")
 
