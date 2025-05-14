@@ -47,5 +47,5 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
     - name: Build and deploy with SAM
       run: |
-        sam build
+        sam build 
         sam deploy --stack-name telegram-bot-stack --parameter-overrides TelegramToken=${{ secrets.TELEGRAM_TOKEN }} --resolve-s3 --capabilities CAPABILITY_IAM --no-confirm-changeset --no-fail-on-empty-changeset
