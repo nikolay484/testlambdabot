@@ -113,7 +113,10 @@ class FusionBrainAPI:
                     img = Image.open(BytesIO(img_response.content))
                     result_images.append(img)
                 except Exception as e:
-                    logger.error(f"Ошибка при загрузке изображения {file_url}: {str(e)}")
+                    # Избегаем вывода бинарных данных в лог
+                    error_type = type(e).__name__
+                    logger.error(f"{error_type} ")
+                    logger.error(f"Ошибка при загрузке изображения {file_url}: {error_type} - {str(e)[:100]}")
             
             return result_images
         except Exception as e:
