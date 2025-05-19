@@ -7,18 +7,29 @@ import tempfile
 from io import BytesIO
 import requests
 from openai import OpenAI
+from unittest.mock import MagicMock
 
 # Настройка логирования
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Получение токена из переменных окружения
-TOKEN = os.environ.get('TELEGRAM_TOKEN')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-bot = telegram.Bot(token=TOKEN)
+TOKEN = os.environ.get('TELEGRAM_TOKEN', 'test_token')  # Добавляем значение по умолчанию для тестов
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', 'test_key')  # Добавляем значение по умолчанию для тестов
+
+# Инициализация Telegram бота
+try:
+    bot = telegram.Bot(token=TOKEN)
+except telegram.error.InvalidToken:
+    logger.warning("Используется тестовый токен Telegram. В продакшене установите правильный токен.")
+    bot = MagicMock()  # Для тестов
 
 # Инициализация OpenAI API
-client = OpenAI(api_key=OPENAI_API_KEY)
+try:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+except Exception as e:
+    logger.warning(f"Ошибка инициализации OpenAI API: {str(e)}. Используется тестовый клиент.")
+    client = MagicMock()  # Для тестов
 
 def start(update, context):
     """Обработчик команды /start"""

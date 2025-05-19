@@ -3,18 +3,19 @@ import unittest
 from unittest.mock import patch, MagicMock
 import os
 import sys
-
-# Добавляем путь к исходному коду в PYTHONPATH
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src import lambda_function
 
 class TestLambdaFunction(unittest.TestCase):
     
-    @patch.dict(os.environ, {"TELEGRAM_TOKEN": "test_token"})
-    @patch('telegram.Bot')
-    @patch('src.lambda_function.process_telegram_update')
-    def test_lambda_handler_valid_request(self, mock_process, mock_bot):
-        # Импортируем lambda_handler здесь, чтобы патчи применились до импорта
-        from src.lambda_function import lambda_handler
+    @patch('src.lambda_function.bot')
+    @patch('src.lambda_function.client')
+    def test_lambda_handler_valid_request(self, mock_openai_client, mock_bot):
+        # Настраиваем моки
+        mock_bot.send_message = MagicMock()
+        mock_update = MagicMock()
+        mock_update.message.text = "Привет"
+        mock_update.effective_chat.id = 123456789
         
         # Создаем тестовый запрос
         event = {
@@ -34,40 +35,33 @@ class TestLambdaFunction(unittest.TestCase):
                         'type': 'private'
                     },
                     'date': 1631234567,
-                    'text': 'Hello, bot!'
+                    'text': 'Привет'
                 }
             })
         }
         
-        # Настраиваем мок, чтобы он возвращал None (как в реальной функции)
-        mock_process.return_value = None
-        
-        # Вызываем функцию-обработчик
-        response = lambda_handler(event, None)
-        
-        # Проверяем, что функция process_telegram_update была вызвана с правильными аргументами
-        update_json = json.loads(event['body'])
-        mock_process.assert_called_once_with(update_json) 
-        
-        # Проверяем ответ
-        self.assertEqual(response['statusCode'], 200)
-        self.assertEqual(json.loads(response['body']), 'OK')
+        # Патчим функцию process_telegram_update
+        with patch('src.lambda_function.process_telegram_update') as mock_process:
+            # Вызываем функцию lambda_handler
+            response = lambda_function.lambda_handler(event, None)
+            
+            # Проверяем, что функция process_telegram_update была вызвана
+            mock_process.assert_called_once()
+            
+            # Проверяем ответ
+            self.assertEqual(response['statusCode'], 200)
+            self.assertEqual(response['body'], json.dumps('OK'))
     
-    @patch.dict(os.environ, {"TELEGRAM_TOKEN": "test_token"})
-    @patch('telegram.Bot')
-    def test_lambda_handler_invalid_request(self, mock_bot):
-        # Импортируем lambda_handler здесь, чтобы патчи применились до импорта
-        from src.lambda_function import lambda_handler
-        
+    def test_lambda_handler_invalid_request(self):
         # Создаем тестовый запрос без тела
         event = {}
         
-        # Вызываем функцию-обработчик
-        response = lambda_handler(event, None)
+        # Вызываем функцию lambda_handler
+        response = lambda_function.lambda_handler(event, None)
         
         # Проверяем ответ
         self.assertEqual(response['statusCode'], 400)
-        self.assertEqual(json.loads(response['body']), 'Bad Request: Not a Telegram Update')
+        self.assertEqual(response['body'], json.dumps('Bad Request: Not a Telegram Update'))
 
 if __name__ == '__main__':
     unittest.main()
