@@ -29,7 +29,7 @@ Resources:
         Variables:
           TELEGRAM_TOKEN: !Ref TelegramToken
           KANDINSKY_API_KEY: !Ref KandinskyApiKey
-          KANDINSKY_SECRET_KEY: !Ref KandinskyApiSecret
+          KANDINSKY_API_SECRET: !Ref KandinskyApiSecret  # Changed from KANDINSKY_SECRET_KEY
       Policies:
         - AWSLambdaBasicExecutionRole  # Allows Lambda to create logs in CloudWatch
         - Statement:
