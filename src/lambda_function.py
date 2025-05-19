@@ -6,7 +6,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 import tempfile
 from io import BytesIO
 import requests
-import openai
+from openai import OpenAI
 
 # Настройка логирования
 logger = logging.getLogger()
@@ -18,7 +18,7 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 bot = telegram.Bot(token=TOKEN)
 
 # Инициализация OpenAI API
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def start(update, context):
     """Обработчик команды /start"""
@@ -81,17 +81,18 @@ def generate_image_process(update, context, prompt):
     message = update.message.reply_text('Генерирую изображение, это может занять некоторое время...')
     
     try:
-        # Генерируем изображение с помощью OpenAI DALL-E
+        # Генерируем изображение с помощью OpenAI DALL-E (новый синтаксис)
         logger.info(f"Начинаем генерацию изображения с запросом: {prompt}")
         
-        response = openai.Image.create(
+        response = client.images.generate(
+            model="dall-e-3",
             prompt=prompt,
-            n=1,  # количество изображений
-            size="1024x1024"  # размер изображения
+            n=1,
+            size="1024x1024"
         )
         
         # Получаем URL изображения
-        image_url = response['data'][0]['url']
+        image_url = response.data[0].url
         
         # Скачиваем изображение
         image_response = requests.get(image_url)
