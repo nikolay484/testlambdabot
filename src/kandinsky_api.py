@@ -13,7 +13,7 @@ class KandinskyAPI:
     def __init__(self, api_key=None, api_secret=None):
         """Инициализация клиента API Kandinsky"""
         self.api_key = api_key or os.environ.get('KANDINSKY_API_KEY')
-        self.api_secret = api_secret or os.environ.get('KANDINSKY_API_SECRET')
+        self.api_secret = api_secret or os.environ.get('KANDINSKY_SECRET_KEY')
         self.base_url = "https://api.kandinsky.ai/v1"
         
         if not self.api_key or not self.api_secret:
