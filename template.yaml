@@ -15,14 +15,6 @@ Parameters:
     Type: String
     Description: Kandinsky API Secret
     NoEcho: true
-  FusionBrainApiKey:
-    Type: String
-    Description: FusionBrain API Key
-    NoEcho: true
-  FusionBrainSecretKey:
-    Type: String
-    Description: FusionBrain Secret Key
-    NoEcho: true
 
 Resources:
   TelegramBotFunction:
