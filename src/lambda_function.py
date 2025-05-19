@@ -6,8 +6,8 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 import tempfile
 from io import BytesIO
 
-# Импортируем наш модуль для работы с Kandinsky API
-from src.kandinsky_api import KandinskyAPI
+# Импортируем наш модуль для работы с FusionBrain API
+from src.fusionbrain_api import FusionBrainAPI
 
 # Настройка логирования
 logger = logging.getLogger()
@@ -17,8 +17,8 @@ logger.setLevel(logging.INFO)
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 bot = telegram.Bot(token=TOKEN)
 
-# Инициализация Kandinsky API
-kandinsky = KandinskyAPI()
+# Инициализация FusionBrain API
+fusionbrain = FusionBrainAPI()
 
 def start(update, context):
     """Обработчик команды /start"""
@@ -73,8 +73,13 @@ def echo(update, context):
 
 def generate_image_process(update, context, prompt):
     """Процесс генерации изображения"""
+    # Отладочная информация о переменных окружения
+    logger.info(f"KANDINSKY_API_KEY существует: {os.environ.get('KANDINSKY_API_KEY') is not None}")
+    logger.info(f"KANDINSKY_SECRET_KEY существует: {os.environ.get('KANDINSKY_SECRET_KEY') is not None}")
+    
     # Проверяем настройки API
-    if not kandinsky.api_key or not kandinsky.api_secret:
+    if not fusionbrain.api_key or not fusionbrain.api_secret:
+        logger.error(f"API ключи не настроены: api_key={fusionbrain.api_key is not None}, api_secret={fusionbrain.api_secret is not None}")
         update.message.reply_text('Извините, API для генерации изображений не настроен.')
         return
     
@@ -83,9 +88,11 @@ def generate_image_process(update, context, prompt):
     
     try:
         # Генерируем изображение
-        images = kandinsky.generate_image(prompt)
+        logger.info(f"Начинаем генерацию изображения с запросом: {prompt}")
+        images = fusionbrain.generate_image(prompt)
         
         if not images:
+            logger.error("Метод generate_image вернул пустой результат")
             update.message.reply_text('Извините, не удалось сгенерировать изображение. Попробуйте другое описание.')
             return
         
