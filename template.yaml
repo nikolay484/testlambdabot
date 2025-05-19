@@ -11,7 +11,7 @@ Parameters:
     Type: String
     Description: Kandinsky API Key
     NoEcho: true
-  KandinskyApiSecret:
+  KandinskySecretKey:
     Type: String
     Description: Kandinsky API Secret
     NoEcho: true
@@ -29,7 +29,7 @@ Resources:
         Variables:
           TELEGRAM_TOKEN: !Ref TelegramToken
           KANDINSKY_API_KEY: !Ref KandinskyApiKey
-          KANDINSKY_SECRET_KEY: !Ref KandinskyApiSecret
+          KANDINSKY_SECRET_KEY: !Ref KandinskySecretKey
       Policies:
         - AWSLambdaBasicExecutionRole  # Allows Lambda to create logs in CloudWatch
         - Statement:
