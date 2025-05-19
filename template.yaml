@@ -20,8 +20,8 @@ Resources:
   TelegramBotFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
-      Handler: lambda_function.lambda_handler
+      CodeUri: ./
+      Handler: src.lambda_function.lambda_handler
       Runtime: python3.9
       Timeout: 60  # Увеличиваем таймаут до 60 секунд
       MemorySize: 512  # Увеличиваем память до 512 МБ
@@ -29,7 +29,7 @@ Resources:
         Variables:
           TELEGRAM_TOKEN: !Ref TelegramToken
           KANDINSKY_API_KEY: !Ref KandinskyApiKey
-          KANDINSKY_API_SECRET: !Ref KandinskyApiSecret
+          KANDINSKY_SECRET_KEY: !Ref KandinskyApiSecret
       Policies:
         - AWSLambdaBasicExecutionRole  # Allows Lambda to create logs in CloudWatch
         - Statement:
