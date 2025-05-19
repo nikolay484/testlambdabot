@@ -4,3 +4,4 @@ boto3==1.28.38
 requests==2.31.0
 urllib3<2.0.0
 python-dotenv==1.0.0
+openai==1.79.0

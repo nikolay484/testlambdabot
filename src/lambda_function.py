@@ -5,9 +5,8 @@ import telegram
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import tempfile
 from io import BytesIO
-
-# Импортируем наш модуль для работы с FusionBrain API
-from src.fusionbrain_api import FusionBrainAPI
+import requests
+import openai
 
 # Настройка логирования
 logger = logging.getLogger()
@@ -15,20 +14,19 @@ logger.setLevel(logging.INFO)
 
 # Получение токена из переменных окружения
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 bot = telegram.Bot(token=TOKEN)
 
-# Инициализация FusionBrain API
-fusionbrain = FusionBrainAPI()
+# Инициализация OpenAI API
+openai.api_key = OPENAI_API_KEY
 
 def start(update, context):
     """Обработчик команды /start"""
     keyboard = [
         [telegram.InlineKeyboardButton("Генерировать изображение", callback_data='generate_image')],
-        [telegram.InlineKeyboardButton("Опция 1", callback_data='option1'),
-         telegram.InlineKeyboardButton("Опция 2", callback_data='option2')]
     ]
     reply_markup = telegram.InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Привет! Я бот, работающий на AWS Lambda. Выберите опцию:', reply_markup=reply_markup)
+    update.message.reply_text('Привет! Я бот для генерации изображений с помощью OpenAI. Выберите опцию:', reply_markup=reply_markup)
 
 def help_command(update, context):
     """Обработчик команды /help"""
@@ -72,14 +70,10 @@ def echo(update, context):
         update.message.reply_text(f"Вы сказали: {update.message.text}\n\nЧтобы сгенерировать изображение, начните сообщение со слова 'Нарисуй' или используйте команду /generate.")
 
 def generate_image_process(update, context, prompt):
-    """Процесс генерации изображения"""
-    # Отладочная информация о переменных окружения
-    logger.info(f"KANDINSKY_API_KEY существует: {os.environ.get('KANDINSKY_API_KEY') is not None}")
-    logger.info(f"KANDINSKY_SECRET_KEY существует: {os.environ.get('KANDINSKY_SECRET_KEY') is not None}")
-    
+    """Процесс генерации изображения с использованием OpenAI"""
     # Проверяем настройки API
-    if not fusionbrain.api_key or not fusionbrain.api_secret:
-        logger.error(f"API ключи не настроены: api_key={fusionbrain.api_key is not None}, api_secret={fusionbrain.api_secret is not None}")
+    if not OPENAI_API_KEY:
+        logger.error("API ключ OpenAI не настроен")
         update.message.reply_text('Извините, API для генерации изображений не настроен.')
         return
     
@@ -87,29 +81,32 @@ def generate_image_process(update, context, prompt):
     message = update.message.reply_text('Генерирую изображение, это может занять некоторое время...')
     
     try:
-        # Генерируем изображение
+        # Генерируем изображение с помощью OpenAI DALL-E
         logger.info(f"Начинаем генерацию изображения с запросом: {prompt}")
-        images = fusionbrain.generate_image(prompt)
         
-        if not images:
-            logger.error("Метод generate_image вернул пустой результат")
-            update.message.reply_text('Извините, не удалось сгенерировать изображение. Попробуйте другое описание.')
-            return
+        response = openai.Image.create(
+            prompt=prompt,
+            n=1,  # количество изображений
+            size="1024x1024"  # размер изображения
+        )
+        
+        # Получаем URL изображения
+        image_url = response['data'][0]['url']
+        
+        # Скачиваем изображение
+        image_response = requests.get(image_url)
+        if image_response.status_code != 200:
+            raise Exception(f"Не удалось скачать изображение, код ответа: {image_response.status_code}")
+        
+        # Создаем объект BytesIO из скачанного изображения
+        img_byte_arr = BytesIO(image_response.content)
         
         # Отправляем изображение пользователю
-        for i, img in enumerate(images):
-            # Конвертируем PIL Image в байты
-            img_byte_arr = BytesIO()
-            img.save(img_byte_arr, format='PNG')
-            img_byte_arr.seek(0)
-            
-            # Отправляем изображение
-            caption = f"Изображение по запросу: {prompt}" if i == 0 else None
-            bot.send_photo(
-                chat_id=update.effective_chat.id,
-                photo=img_byte_arr,
-                caption=caption
-            )
+        bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=img_byte_arr,
+            caption=f"Изображение по запросу: {prompt}"
+        )
         
         # Удаляем сообщение о генерации
         bot.delete_message(
@@ -132,10 +129,6 @@ def button_callback(update, context):
             text="Пожалуйста, отправьте мне описание изображения, которое хотите сгенерировать.\n"
                  "Например: 'Нарисуй космический корабль в стиле киберпанк'"
         )
-    elif query.data == 'option1':
-        query.edit_message_text(text="Вы выбрали опцию 1!")
-    elif query.data == 'option2':
-        query.edit_message_text(text="Вы выбрали опцию 2!")
     else:
         query.edit_message_text(text=f"Получен неизвестный callback: {query.data}")
 

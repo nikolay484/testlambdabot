@@ -7,13 +7,9 @@ Parameters:
     Type: String
     Description: Telegram Bot Token
     NoEcho: true
-  KandinskyApiKey:
+  OpenAIApiKey:
     Type: String
-    Description: Kandinsky API Key
-    NoEcho: true
-  KandinskySecretKey:
-    Type: String
-    Description: Kandinsky API Secret
+    Description: OpenAI API Key
     NoEcho: true
 
 Resources:
@@ -28,8 +24,7 @@ Resources:
       Environment:
         Variables:
           TELEGRAM_TOKEN: !Ref TelegramToken
-          KANDINSKY_API_KEY: !Ref KandinskyApiKey
-          KANDINSKY_SECRET_KEY: !Ref KandinskySecretKey
+          OPENAI_API_KEY: !Ref OpenAIApiKey
       Policies:
         - AWSLambdaBasicExecutionRole  # Allows Lambda to create logs in CloudWatch
         - Statement:
