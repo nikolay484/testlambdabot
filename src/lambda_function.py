@@ -35,6 +35,7 @@ def start(update, context):
     """Обработчик команды /start"""
     keyboard = [
         [telegram.InlineKeyboardButton("Генерировать изображение", callback_data='generate_image')],
+        [telegram.InlineKeyboardButton("Голосовой запрос", callback_data='voice_request')],
     ]
     reply_markup = telegram.InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Привет! Я бот для генерации изображений с помощью OpenAI. Выберите опцию:', reply_markup=reply_markup)
@@ -46,7 +47,8 @@ def help_command(update, context):
         '/start - Начать работу с ботом\n'
         '/help - Показать справку\n'
         '/generate - Генерировать изображение по описанию\n\n'
-        'Или просто отправьте мне текст, начинающийся с "Нарисуй" или "Сгенерируй"'
+        'Или просто отправьте мне текст, начинающийся с "Нарисуй" или "Сгенерируй"\n'
+        'Также вы можете отправить голосовое сообщение, и я сгенерирую изображение на основе распознанного текста'
     )
 
 def generate_command(update, context):
@@ -78,7 +80,58 @@ def echo(update, context):
         else:
             update.message.reply_text('Пожалуйста, укажите описание изображения.')
     else:
-        update.message.reply_text(f"Вы сказали: {update.message.text}\n\nЧтобы сгенерировать изображение, начните сообщение со слова 'Нарисуй' или используйте команду /generate.")
+        update.message.reply_text(f"Вы сказали: {update.message.text}\n\nЧтобы сгенерировать изображение, начните сообщение со слова 'Нарисуй' или используйте команду /generate.\nТакже вы можете отправить голосовое сообщение для генерации изображения.")
+
+def voice_message_handler(update, context):
+    """Обработчик голосовых сообщений"""
+    # Отправляем сообщение о начале обработки
+    message = update.message.reply_text('Обрабатываю ваше голосовое сообщение, это может занять некоторое время...')
+    
+    try:
+        # Получаем информацию о голосовом сообщении
+        voice = update.message.voice
+        
+        # Получаем файл голосового сообщения
+        voice_file = bot.get_file(voice.file_id)
+        
+        # Создаем временный файл для сохранения голосового сообщения
+        with tempfile.NamedTemporaryFile(suffix='.ogg', delete=False) as temp_voice_file:
+            temp_voice_path = temp_voice_file.name
+        
+        # Скачиваем голосовое сообщение
+        voice_file.download(temp_voice_path)
+        
+        # Конвертируем OGG в MP3 (если нужно)
+        # Для простоты пропустим этот шаг, так как OpenAI может работать с OGG
+        
+        # Распознаем речь с помощью OpenAI Whisper API
+        with open(temp_voice_path, 'rb') as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
+        
+        # Получаем распознанный текст
+        recognized_text = transcription.text
+        
+        # Удаляем временный файл
+        os.unlink(temp_voice_path)
+        
+        # Отправляем пользователю распознанный текст
+        update.message.reply_text(f"Распознанный текст: {recognized_text}")
+        
+        # Генерируем изображение на основе распознанного текста
+        generate_image_process(update, context, recognized_text)
+        
+        # Удаляем сообщение о обработке
+        bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=message.message_id
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка при обработке голосового сообщения: {str(e)}")
+        update.message.reply_text(f'Произошла ошибка при обработке голосового сообщения: {str(e)}')
 
 def generate_image_process(update, context, prompt):
     """Процесс генерации изображения с использованием OpenAI"""
@@ -141,6 +194,11 @@ def button_callback(update, context):
             text="Пожалуйста, отправьте мне описание изображения, которое хотите сгенерировать.\n"
                  "Например: 'Нарисуй космический корабль в стиле киберпанк'"
         )
+    elif query.data == 'voice_request':
+        query.edit_message_text(
+            text="Пожалуйста, отправьте мне голосовое сообщение с описанием изображения, которое хотите сгенерировать.\n"
+                 "Я распознаю ваш голос и создам изображение на основе распознанного текста."
+        )
     else:
         query.edit_message_text(text=f"Получен неизвестный callback: {query.data}")
 
@@ -153,6 +211,7 @@ def setup_dispatcher():
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("generate", generate_command, pass_args=True))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+    dispatcher.add_handler(MessageHandler(Filters.voice, voice_message_handler))  # Добавляем обработчик голосовых сообщений
     dispatcher.add_handler(CallbackQueryHandler(button_callback))  # Добавляем обработчик callback-запросов
     
     return dispatcher
